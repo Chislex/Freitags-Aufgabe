@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create Build Artifact Directory
-       run: mkdir -p dist && echo "Build Version 1.0.${{ github.run_number }}" > dist/version.txt
+        run: mkdir -p dist && echo "Build Version 1.0.${{ github.run_number }}" > dist/version.txt
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
