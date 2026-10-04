@@ -1,0 +1,77 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      - name: Run Pytest
+        run: pytest
+
+  build:
+    name: Build & Package
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create Build Artifact Directory
+       run: mkdir -p dist && echo "Build Version 1.0.${{ github.run_number }}" > dist/version.txt
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-artifact
+          path: dist/
+
+  deploy:
+    name: Automated Deployment
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: 
+      name: production
+      url: https://example.com/deployment
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-artifact
+
+      - name: Use Secret (Securely)
+        run: |
+          echo "Deploying application..."
+          if [ -n "${{ secrets.DEPLOY_TOKEN }}" ]; then
+            echo "DEPLOY_TOKEN is configured."
+          else
+            echo "DEPLOY_TOKEN is missing."
+          fi
+
+      - name: Create Release & Tag
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Release v1.0.${{ github.run_number }}
+          files: version.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
